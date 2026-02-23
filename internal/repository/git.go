@@ -11,6 +11,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
+	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/nlewo/comin/internal/types"
 	"github.com/sirupsen/logrus"
 )
@@ -118,8 +119,25 @@ func fetch(r repository, remote types.Remote) (err error) {
 	fetchOptions := git.FetchOptions{
 		RemoteName: remote.Name,
 	}
-	// TODO: support several authentication methods
-	if remote.Auth.AccessToken != "" {
+	// SSH authentication takes precedence over HTTP token auth
+	if r.GitConfig.SSHKeyPath != "" {
+		publicKeys, err := ssh.NewPublicKeysFromFile("git", r.GitConfig.SSHKeyPath, "")
+		if err != nil {
+			return fmt.Errorf("failed to load SSH key from %s: %w", r.GitConfig.SSHKeyPath, err)
+		}
+		if r.GitConfig.SSHKnownHostsPath != "" {
+			hostKeyCallback, err := ssh.NewKnownHostsCallback(r.GitConfig.SSHKnownHostsPath)
+			if err != nil {
+				return fmt.Errorf("failed to load known_hosts from %s: %w", r.GitConfig.SSHKnownHostsPath, err)
+			}
+			clientConfig, err := publicKeys.ClientConfig()
+			if err != nil {
+				return fmt.Errorf("failed to get SSH client config: %w", err)
+			}
+			clientConfig.HostKeyCallback = hostKeyCallback
+		}
+		fetchOptions.Auth = publicKeys
+	} else if remote.Auth.AccessToken != "" {
 		fetchOptions.Auth = &http.BasicAuth{
 			Username: remote.Auth.Username,
 			Password: remote.Auth.AccessToken,
