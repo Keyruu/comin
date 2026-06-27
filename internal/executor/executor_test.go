@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -60,7 +61,7 @@ func TestNixExecutorEval(t *testing.T) {
 			// Test that Eval doesn't panic and handles parameters correctly
 			// This will error in test environment since nix commands will fail,
 			// but we're testing the code path and parameter handling
-			_, _, _, err = executor.Eval(ctx, tt.repositoryPath, tt.repositorySubdir, tt.commitId, tt.systemAttr, tt.hostname, false)
+			_, _, _, err = executor.Eval(ctx, tt.repositoryPath, tt.repositorySubdir, tt.commitId, tt.systemAttr, tt.hostname, false, os.Stdout, os.Stderr)
 			t.Logf("Eval with %s returned error: %v (expected in test environment)", tt.systemAttr, err)
 		})
 	}

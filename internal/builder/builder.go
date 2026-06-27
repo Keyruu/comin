@@ -12,10 +12,12 @@ package builder
 import (
 	"context"
 	"fmt"
+	"io"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/nlewo/comin/internal/broker"
 	"github.com/nlewo/comin/internal/executor"
 	"github.com/nlewo/comin/internal/store"
 	"github.com/nlewo/comin/pkg/protobuf"
@@ -31,6 +33,7 @@ const (
 type Builder struct {
 	store          *store.Store
 	executor       executor.Executor
+	broker         *broker.Broker
 	hostname       string
 	repositoryPath string
 	repositoryDir  string
@@ -63,12 +66,13 @@ type Builder struct {
 	isSuspended bool
 }
 
-func New(store *store.Store, executor executor.Executor, repositoryPath, repositoryDir, systemAttr, hostname string, submodules bool, evalTimeout time.Duration, buildTimeout time.Duration) *Builder {
+func New(store *store.Store, executor executor.Executor, broker *broker.Broker, repositoryPath, repositoryDir, systemAttr, hostname string, submodules bool, evalTimeout time.Duration, buildTimeout time.Duration) *Builder {
 	logrus.Infof("builder: initialization with repositoryPath=%s, repositoryDir=%s, systemAttr=%s, hostname=%s, submodules=%v, evalTimeout=%fs, buildTimeout=%fs, )",
 		repositoryPath, repositoryDir, systemAttr, hostname, submodules, evalTimeout.Seconds(), buildTimeout.Seconds())
 	return &Builder{
 		store:          store,
 		executor:       executor,
+		broker:         broker,
 		repositoryPath: repositoryPath,
 		repositoryDir:  repositoryDir,
 		systemAttr:     systemAttr,
@@ -155,20 +159,25 @@ type Evaluator struct {
 	drvPath   string
 	outPath   string
 	machineId string
+
+	stdout io.WriteCloser
+	stderr io.WriteCloser
 }
 
 func (r *Evaluator) Run(ctx context.Context) (err error) {
-	r.drvPath, r.outPath, r.machineId, err = r.evalFunc(ctx, r.repositoryPath, r.repostorySubdir, r.commitId, r.systemAttr, r.hostname, r.submodules)
+	r.drvPath, r.outPath, r.machineId, err = r.evalFunc(ctx, r.repositoryPath, r.repostorySubdir, r.commitId, r.systemAttr, r.hostname, r.submodules, r.stdout, r.stderr)
 	return err
 }
 
 type Buildator struct {
 	drvPath   string
 	buildFunc executor.BuildFunc
+	stdout    io.WriteCloser
+	stderr    io.WriteCloser
 }
 
 func (r *Buildator) Run(ctx context.Context) (err error) {
-	return r.buildFunc(ctx, r.drvPath)
+	return r.buildFunc(ctx, r.drvPath, r.stdout, r.stderr)
 }
 
 // Eval evaluates a generation. It cancels current any generation
@@ -192,6 +201,8 @@ func (b *Builder) Eval(ctx context.Context, rs *protobuf.RepositoryStatus) error
 	}
 	b.GenerationUuid = g.Uuid
 
+	stdout, stderr := b.broker.GetLogger("evaluation", g.Uuid)
+
 	evaluator := &Evaluator{
 		hostname:        b.hostname,
 		repositoryPath:  g.RepositoryPath,
@@ -201,6 +212,8 @@ func (b *Builder) Eval(ctx context.Context, rs *protobuf.RepositoryStatus) error
 
 		commitId: g.SelectedCommitId,
 		evalFunc: b.executor.Eval,
+		stdout:   stdout,
+		stderr:   stderr,
 	}
 	b.evaluator = NewExec(evaluator, b.evalTimeout)
 
@@ -211,6 +224,11 @@ func (b *Builder) Eval(ctx context.Context, rs *protobuf.RepositoryStatus) error
 	go func() {
 		defer b.evaluatorWg.Done()
 		b.evaluator.Wait()
+
+		// We close the writers to stop associated goroutines
+		stdout.Close()
+		stderr.Close()
+
 		b.mu.Lock()
 		defer b.mu.Unlock()
 		if err := b.store.GenerationEvalFinished(
@@ -330,9 +348,12 @@ func (b *Builder) build(ctx context.Context, generationUuid string) error {
 		return err
 	}
 	b.isBuilding.Store(true)
+	stdout, stderr := b.broker.GetLogger("build", generation.Uuid)
 	buildator := &Buildator{
 		drvPath:   generation.DrvPath,
 		buildFunc: b.executor.Build,
+		stdout:    stdout,
+		stderr:    stderr,
 	}
 	b.buildator = NewExec(buildator, b.buildTimeout)
 
@@ -343,6 +364,11 @@ func (b *Builder) build(ctx context.Context, generationUuid string) error {
 	go func() {
 		defer b.buildatorWg.Done()
 		b.buildator.Wait()
+
+		// We close the writers to stop associated goroutines
+		stdout.Close()
+		stderr.Close()
+
 		b.mu.Lock()
 		defer b.mu.Unlock()
 		err := b.store.GenerationBuildFinished(generationUuid, b.buildator.getErr())

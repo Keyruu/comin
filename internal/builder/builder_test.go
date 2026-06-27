@@ -2,6 +2,7 @@ package builder
 
 import (
 	"context"
+	"io"
 	"log"
 	"testing"
 	"time"
@@ -33,7 +34,7 @@ func (n ExecutorMock) IsStorePathExist(storePath string) bool {
 func (n ExecutorMock) Deploy(ctx context.Context, outPath, operation string, profilePaths []string) (needToRestartComin bool, profilePath string, err error) {
 	return false, "", nil
 }
-func (n ExecutorMock) Eval(ctx context.Context, repositoryPath, repositorySubdir, commitId, systemAttr, hostname string, submodules bool) (drvPath string, outPath string, machineId string, err error) {
+func (n ExecutorMock) Eval(ctx context.Context, repositoryPath, repositorySubdir, commitId, systemAttr, hostname string, submodules bool, stdout, stderr io.WriteCloser) (drvPath string, outPath string, machineId string, err error) {
 	select {
 	case <-ctx.Done():
 		return "", "", "", ctx.Err()
@@ -41,7 +42,7 @@ func (n ExecutorMock) Eval(ctx context.Context, repositoryPath, repositorySubdir
 		return "drv-path", "out-path", "", nil
 	}
 }
-func (n ExecutorMock) Build(ctx context.Context, drvPath string) (err error) {
+func (n ExecutorMock) Build(ctx context.Context, drvPath string, stdout, stdin io.WriteCloser) (err error) {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -69,7 +70,7 @@ func TestBuilderBuild(t *testing.T) {
 	s, err := store.New(bk, tmp+"/state.json", tmp+"/gcroots", 1, 1, 1)
 	assert.Nil(t, err)
 	eMock := NewExecutorMock(false)
-	b := New(s, eMock, "", "", "", "my-machine", false, 2*time.Second, 2*time.Second)
+	b := New(s, eMock, bk, "", "", "", "my-machine", false, 2*time.Second, 2*time.Second)
 	ctx := t.Context()
 
 	// Run the evaluator
@@ -133,7 +134,7 @@ func TestEval(t *testing.T) {
 	s, err := store.New(bk, tmp+"/state.json", tmp+"/gcroots", 1, 1, 1)
 	assert.Nil(t, err)
 	eMock := NewExecutorMock(false)
-	b := New(s, eMock, "", "", "", "", false, 5*time.Second, 5*time.Second)
+	b := New(s, eMock, bk, "", "", "", "", false, 5*time.Second, 5*time.Second)
 	_ = b.Eval(t.Context(), &protobuf.RepositoryStatus{})
 	assert.True(t, b.isEvaluating.Load())
 	eMock.evalDone <- struct{}{}
@@ -155,7 +156,7 @@ func TestEvalAlreadyBuilt(t *testing.T) {
 	s, err := store.New(bk, tmp+"/state.json", tmp+"/gcroots", 1, 1, 1)
 	assert.Nil(t, err)
 	eMock := NewExecutorMock(true)
-	b := New(s, eMock, "", "", "", "", false, 5*time.Second, 5*time.Second)
+	b := New(s, eMock, bk, "", "", "", "", false, 5*time.Second, 5*time.Second)
 	_ = b.Eval(t.Context(), &protobuf.RepositoryStatus{})
 	assert.True(t, b.IsEvaluating())
 
@@ -179,7 +180,7 @@ func TestBuilderPreemption(t *testing.T) {
 	s, err := store.New(bk, tmp+"/state.json", tmp+"/gcroots", 1, 1, 1)
 	assert.Nil(t, err)
 	eMock := NewExecutorMock(false)
-	b := New(s, eMock, "", "", "", "", false, 5*time.Second, 5*time.Second)
+	b := New(s, eMock, bk, "", "", "", "", false, 5*time.Second, 5*time.Second)
 	_ = b.Eval(t.Context(), &protobuf.RepositoryStatus{SelectedCommitId: "commit-1"})
 	assert.True(t, b.isEvaluating.Load())
 	assert.EventuallyWithT(t, func(c *assert.CollectT) {
@@ -202,7 +203,7 @@ func TestBuilderStop(t *testing.T) {
 	s, err := store.New(bk, tmp+"/state.json", tmp+"/gcroots", 1, 1, 1)
 	assert.Nil(t, err)
 	eMock := NewExecutorMock(false)
-	b := New(s, eMock, "", "", "", "", false, 5*time.Second, 5*time.Second)
+	b := New(s, eMock, bk, "", "", "", "", false, 5*time.Second, 5*time.Second)
 	_ = b.Eval(t.Context(), &protobuf.RepositoryStatus{})
 	assert.True(t, b.isEvaluating.Load())
 	b.Stop()
@@ -220,7 +221,7 @@ func TestBuilderTimeout(t *testing.T) {
 	s, err := store.New(bk, tmp+"/state.json", tmp+"/gcroots", 1, 1, 1)
 	assert.Nil(t, err)
 	eMock := NewExecutorMock(false)
-	b := New(s, eMock, "", "", "", "", false, 1*time.Second, 5*time.Second)
+	b := New(s, eMock, bk, "", "", "", "", false, 1*time.Second, 5*time.Second)
 	_ = b.Eval(t.Context(), &protobuf.RepositoryStatus{})
 	assert.True(t, b.isEvaluating.Load())
 	assert.EventuallyWithT(t, func(c *assert.CollectT) {
@@ -237,7 +238,7 @@ func TestBuilderSuspend(t *testing.T) {
 	s, err := store.New(bk, tmp+"/state.json", tmp+"/gcroots", 1, 1, 1)
 	assert.Nil(t, err)
 	eMock := NewExecutorMock(false)
-	b := New(s, eMock, "", "", "", "", false, 1*time.Second, 5*time.Second)
+	b := New(s, eMock, bk, "", "", "", "", false, 1*time.Second, 5*time.Second)
 	_ = b.Suspend()
 	assert.True(t, b.isSuspended)
 	_ = b.Eval(t.Context(), &protobuf.RepositoryStatus{})
