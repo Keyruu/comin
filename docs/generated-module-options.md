@@ -552,14 +552,14 @@ Path to the SSH private key used to authenticate to the Git remote\.
 
 
 *Type:*
-null or absolute path
+string
 
 
 
 *Default:*
 
 ```nix
-null
+""
 ```
 
 
@@ -576,14 +576,14 @@ key must be present in this file\.
 
 
 *Type:*
-null or absolute path
+string
 
 
 
 *Default:*
 
 ```nix
-null
+""
 ```
 
 
