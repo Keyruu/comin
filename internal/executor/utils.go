@@ -239,19 +239,19 @@ func cominUnitFileHashDarwin() string {
 	return hash
 }
 
-func switchToConfiguration(operation string, outPath string, dryRun bool, systemAttr string) error {
+func switchToConfiguration(operation string, outPath string, dryRun bool, systemAttr string, stdout, stderr io.WriteCloser) error {
 	if systemAttr == "darwinConfigurations" {
-		return switchToConfigurationDarwin(operation, outPath, dryRun)
+		return switchToConfigurationDarwin(operation, outPath, dryRun, stdout, stderr)
 	}
-	return switchToConfigurationLinux(operation, outPath, dryRun)
+	return switchToConfigurationLinux(operation, outPath, dryRun, stdout, stderr)
 }
 
-func switchToConfigurationLinux(operation string, outPath string, dryRun bool) error {
+func switchToConfigurationLinux(operation string, outPath string, dryRun bool, stdout, stderr io.WriteCloser) error {
 	switchToConfigurationExe := filepath.Join(outPath, "bin", "switch-to-configuration")
 	logrus.Infof("nix: running '%s %s'", switchToConfigurationExe, operation)
 	cmd := exec.Command(switchToConfigurationExe, operation)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
 	if dryRun {
 		logrus.Infof("nix: dry-run enabled: '%s %s' has not been executed", switchToConfigurationExe, operation)
 	} else {
@@ -263,7 +263,7 @@ func switchToConfigurationLinux(operation string, outPath string, dryRun bool) e
 	return nil
 }
 
-func switchToConfigurationDarwin(operation string, outPath string, dryRun bool) error {
+func switchToConfigurationDarwin(operation string, outPath string, dryRun bool, stdout, stderr io.WriteCloser) error {
 	activateUserExe := filepath.Join(outPath, "activate-user")
 	activateExe := filepath.Join(outPath, "activate")
 
@@ -274,16 +274,16 @@ func switchToConfigurationDarwin(operation string, outPath string, dryRun bool) 
 
 	logrus.Infof("nix: activating user environment: '%s'", activateUserExe)
 	userCmd := exec.Command(activateUserExe)
-	userCmd.Stdout = os.Stdout
-	userCmd.Stderr = os.Stderr
+	userCmd.Stdout = stdout
+	userCmd.Stderr = stderr
 	if err := userCmd.Run(); err != nil {
 		return fmt.Errorf("user activation command %s fails with %s", activateUserExe, err)
 	}
 
 	logrus.Infof("nix: activating system environment: '%s'", activateExe)
 	cmd := exec.Command(activateExe)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("system activation command %s fails with %s", activateExe, err)
 	}
@@ -292,14 +292,14 @@ func switchToConfigurationDarwin(operation string, outPath string, dryRun bool) 
 	return nil
 }
 
-func deploy(ctx context.Context, outPath, operation, systemAttr string, profilePaths []string) (needToRestartComin bool, profilePath string, err error) {
+func deploy(ctx context.Context, outPath, operation, systemAttr string, profilePaths []string, stdout, stderr io.WriteCloser) (needToRestartComin bool, profilePath string, err error) {
 	if systemAttr == "darwinConfigurations" {
-		return deployDarwin(ctx, outPath, operation, profilePaths)
+		return deployDarwin(ctx, outPath, operation, profilePaths, stdout, stderr)
 	}
-	return deployLinux(ctx, outPath, operation, profilePaths)
+	return deployLinux(ctx, outPath, operation, profilePaths, stdout, stderr)
 }
 
-func deployLinux(ctx context.Context, outPath, operation string, profilePaths []string) (needToRestartComin bool, profilePath string, err error) {
+func deployLinux(ctx context.Context, outPath, operation string, profilePaths []string, stdout, stderr io.WriteCloser) (needToRestartComin bool, profilePath string, err error) {
 	// FIXME: this check doesn't have to be here. It should be
 	// done by the manager.
 	beforeCominUnitFileHash := cominUnitFileHashLinux()
@@ -312,7 +312,7 @@ func deployLinux(ctx context.Context, outPath, operation string, profilePaths []
 	// We append the new profile path to the list of profile to preserve
 	profile.RemoveProfiles(append(profilePaths, profilePath))
 
-	if err = switchToConfigurationLinux(operation, outPath, false); err != nil {
+	if err = switchToConfigurationLinux(operation, outPath, false, stdout, stderr); err != nil {
 		return
 	}
 
@@ -327,7 +327,7 @@ func deployLinux(ctx context.Context, outPath, operation string, profilePaths []
 	return
 }
 
-func deployDarwin(ctx context.Context, outPath, operation string, profilePaths []string) (needToRestartComin bool, profilePath string, err error) {
+func deployDarwin(ctx context.Context, outPath, operation string, profilePaths []string, stdout, stderr io.WriteCloser) (needToRestartComin bool, profilePath string, err error) {
 	// FIXME: this check doesn't have to be here. It should be
 	// done by the manager.
 	beforeCominUnitFileHash := cominUnitFileHashDarwin()
@@ -340,7 +340,7 @@ func deployDarwin(ctx context.Context, outPath, operation string, profilePaths [
 	// We append the new profile path to the list of profile to preserve
 	profile.RemoveProfiles(append(profilePaths, profilePath))
 
-	if err = switchToConfigurationDarwin(operation, outPath, false); err != nil {
+	if err = switchToConfigurationDarwin(operation, outPath, false, stdout, stderr); err != nil {
 		return
 	}
 

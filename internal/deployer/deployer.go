@@ -3,12 +3,14 @@ package deployer
 import (
 	"context"
 	"fmt"
+	"io"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/dustin/go-humanize"
+	"github.com/nlewo/comin/internal/broker"
 	"github.com/nlewo/comin/internal/store"
 	"github.com/nlewo/comin/internal/types"
 	"github.com/nlewo/comin/internal/utils"
@@ -23,7 +25,7 @@ const (
 	ReasonDeploymentManual  = "manual"
 )
 
-type DeployFunc func(context.Context, string, string, []string) (bool, string, error)
+type DeployFunc func(context.Context, string, string, []string, io.WriteCloser, io.WriteCloser) (bool, string, error)
 
 type Deployer struct {
 	GenerationCh       chan *protobuf.Generation
@@ -48,6 +50,7 @@ type Deployer struct {
 	// mainly used for testing purpose.
 	runnerIsSuspended atomic.Bool
 	store             *store.Store
+	broker            *broker.Broker
 }
 
 func (d *Deployer) State() *protobuf.Deployer {
@@ -112,7 +115,7 @@ func Show(s *protobuf.Deployer, padding string) {
 	showDeployment(padding, s.Deployment)
 }
 
-func New(store *store.Store, deployFunc DeployFunc, previousDeployment *protobuf.Deployment, postDeploymentCommand string) *Deployer {
+func New(store *store.Store, deployFunc DeployFunc, previousDeployment *protobuf.Deployment, postDeploymentCommand string, b *broker.Broker) *Deployer {
 	if previousDeployment != nil {
 		logrus.Infof("deployer: initializing with previous deployment %s", previousDeployment.Uuid)
 	}
@@ -122,6 +125,7 @@ func New(store *store.Store, deployFunc DeployFunc, previousDeployment *protobuf
 		deployerFunc:          deployFunc,
 		generationAvailableCh: make(chan struct{}, 1),
 		postDeploymentCommand: postDeploymentCommand,
+		broker:                b,
 
 		resumeCh: make(chan struct{}, 1),
 	}
@@ -236,12 +240,18 @@ func (d *Deployer) Run(ctx context.Context) {
 			}
 			if operationComputed != types.OperationNull {
 				profilePaths := d.store.GetDeploymentProfilePaths()
+				stdout, stderr := d.broker.GetLogger("deployment", g.Uuid)
 				cominNeedRestart, profilePath, err = d.deployerFunc(
 					ctx,
 					g.OutPath,
 					operationComputed,
 					profilePaths,
+					stdout,
+					stderr,
 				)
+				// We close the writers to stop associated goroutines
+				stdout.Close()
+				stderr.Close()
 			}
 			deployment := d.Deployment()
 			deployment.EndedAt = timestamppb.New(time.Now().UTC())
@@ -251,6 +261,7 @@ func (d *Deployer) Run(ctx context.Context) {
 			}
 			cmd := d.postDeploymentCommand
 			if cmd != "" {
+				// TODO: we should also log these outputs
 				_, err = runPostDeploymentCommand(cmd, deployment)
 				if err != nil {
 					logrus.Errorf("deployer: deploying generation %s, post deployment command [%s] failed %v", g.Uuid, cmd, err)

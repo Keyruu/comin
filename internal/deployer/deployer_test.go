@@ -2,6 +2,7 @@ package deployer
 
 import (
 	"context"
+	"io"
 	"testing"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 
 func TestDeployerBasic(t *testing.T) {
 	deployDone := make(chan struct{})
-	var deployFunc = func(context.Context, string, string, []string) (bool, string, error) {
+	var deployFunc = func(context.Context, string, string, []string, io.WriteCloser, io.WriteCloser) (bool, string, error) {
 		<-deployDone
 		return false, "profile-path", nil
 	}
@@ -24,7 +25,7 @@ func TestDeployerBasic(t *testing.T) {
 
 	s, err := store.New(bk, tmp+"/state.json", tmp+"/gcroots", 1, 1, 1)
 	assert.Nil(t, err)
-	d := New(s, deployFunc, nil, "")
+	d := New(s, deployFunc, nil, "", bk)
 	d.Run(t.Context())
 	assert.False(t, d.IsDeploying())
 
@@ -49,7 +50,7 @@ func TestDeployerBasic(t *testing.T) {
 
 func TestDeployerSubmit(t *testing.T) {
 	deployDone := make(chan struct{})
-	var deployFunc = func(context.Context, string, string, []string) (bool, string, error) {
+	var deployFunc = func(context.Context, string, string, []string, io.WriteCloser, io.WriteCloser) (bool, string, error) {
 		<-deployDone
 		return false, "profile-path", nil
 	}
@@ -60,7 +61,7 @@ func TestDeployerSubmit(t *testing.T) {
 
 	s, err := store.New(bk, tmp+"/state.json", tmp+"/gcroots", 1, 1, 1)
 	assert.Nil(t, err)
-	d := New(s, deployFunc, nil, "")
+	d := New(s, deployFunc, nil, "", bk)
 	d.Run(t.Context())
 	assert.False(t, d.IsDeploying())
 
@@ -92,7 +93,7 @@ func TestDeployerSubmit(t *testing.T) {
 
 func TestDeployerSuspend(t *testing.T) {
 	deployDone := make(chan struct{})
-	var deployFunc = func(context.Context, string, string, []string) (bool, string, error) {
+	var deployFunc = func(context.Context, string, string, []string, io.WriteCloser, io.WriteCloser) (bool, string, error) {
 		<-deployDone
 		return false, "profile-path", nil
 	}
@@ -103,7 +104,7 @@ func TestDeployerSuspend(t *testing.T) {
 
 	s, err := store.New(bk, tmp+"/state.json", tmp+"/gcroots", 1, 1, 1)
 	assert.Nil(t, err)
-	d := New(s, deployFunc, nil, "")
+	d := New(s, deployFunc, nil, "", bk)
 	d.Run(t.Context())
 	assert.False(t, d.IsSuspended())
 	d.Suspend("suspended for testing")

@@ -63,8 +63,8 @@ func (n *NixFlakeLocal) Build(ctx context.Context, drvPath string, stdout, stdin
 	return buildWithFlake(ctx, drvPath, stdout, stdin)
 }
 
-func (n *NixFlakeLocal) Deploy(ctx context.Context, outPath, operation string, profilePaths []string) (needToRestartComin bool, profilePath string, err error) {
-	return deploy(ctx, outPath, operation, n.systemAttr, profilePaths)
+func (n *NixFlakeLocal) Deploy(ctx context.Context, outPath, operation string, profilePaths []string, stdout, stderr io.WriteCloser) (needToRestartComin bool, profilePath string, err error) {
+	return deploy(ctx, outPath, operation, n.systemAttr, profilePaths, stdout, stderr)
 }
 
 type Path struct {

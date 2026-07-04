@@ -46,8 +46,8 @@ func (n *NixLocal) Build(ctx context.Context, drvPath string, stdout, stdin io.W
 	return buildWithNix(ctx, drvPath, stdout, stdin)
 }
 
-func (n *NixLocal) Deploy(ctx context.Context, outPath, operation string, profilePaths []string) (needToRestartComin bool, profilePath string, err error) {
-	return deployLinux(ctx, outPath, operation, profilePaths)
+func (n *NixLocal) Deploy(ctx context.Context, outPath, operation string, profilePaths []string, stdout, stderr io.WriteCloser) (needToRestartComin bool, profilePath string, err error) {
+	return deployLinux(ctx, outPath, operation, profilePaths, stdout, stderr)
 }
 
 func cloneRepoToTemp(remoteDir string, commitId string, submodules bool) (string, error) {
