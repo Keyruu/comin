@@ -37,7 +37,7 @@ var eventsCmd = &cobra.Command{
 				}
 				fmt.Println(string(jsonData))
 			} else {
-				fmt.Println(streamer.Event)
+				fmt.Println(streamer.Event.Short())
 			}
 		}
 	},
