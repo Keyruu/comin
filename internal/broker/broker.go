@@ -99,6 +99,7 @@ func (b *Broker) GetLogger(obj, objUuid string) (stdout, stderr io.WriteCloser) 
 		scanner := bufio.NewScanner(stdoutR)
 		for scanner.Scan() {
 			line := scanner.Text()
+			logrus.Infof("logs: %s", line)
 			b.Publish(
 				&protobuf.Event{
 					Type: &protobuf.Event_Log_{
@@ -127,6 +128,7 @@ func (b *Broker) GetLogger(obj, objUuid string) (stdout, stderr io.WriteCloser) 
 		scanner := bufio.NewScanner(stderrR)
 		for scanner.Scan() {
 			line := scanner.Text()
+			logrus.Infof("logs: %s", line)
 			b.Publish(
 				&protobuf.Event{
 					Type: &protobuf.Event_Log_{
