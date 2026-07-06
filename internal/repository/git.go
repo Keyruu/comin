@@ -536,7 +536,8 @@ func parseSSHSignature(signature string) (*sshCommitSignature, error) {
 		return nil, err
 	}
 	// OpenSSH refuses SHA-1 based signature algorithms for SSH signatures.
-	if sshSignature.Format == ssh.KeyAlgoRSA || sshSignature.Format == ssh.KeyAlgoDSA {
+	// "ssh-dss" spelled out to avoid referencing the deprecated ssh.KeyAlgoDSA constant.
+	if sshSignature.Format == ssh.KeyAlgoRSA || sshSignature.Format == "ssh-dss" {
 		return nil, fmt.Errorf("unsupported SSH signature algorithm %q", sshSignature.Format)
 	}
 
