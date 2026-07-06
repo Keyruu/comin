@@ -85,4 +85,6 @@ type Configuration struct {
 	BuildConfirmer        Confirmer  `yaml:"build_confirmer"`
 	DeployConfirmer       Confirmer  `yaml:"deploy_confirmer"`
 	Retention             Retention  `yaml:"retention"`
+	EvalTimeout           int        `yaml:"eval_timeout"`
+	BuildTimeout          int        `yaml:"build_timeout"`
 }
