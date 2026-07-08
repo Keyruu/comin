@@ -92,6 +92,21 @@ in
             When enabled, this adds ?submodules=1 to the flake URL.
           '';
         };
+        evalTimeout = mkOption {
+          type = int;
+          default = 1800;
+          description = ''
+            Maximum duration in seconds for a Nix evaluation (flake/nix eval)
+            before comin cancels it.
+          '';
+        };
+        buildTimeout = mkOption {
+          type = int;
+          default = 1800;
+          description = ''
+            Maximum duration in seconds for a Nix build before comin cancels it.
+          '';
+        };
         exporter = mkOption {
           description = "Options for the Prometheus exporter.";
           default = { };

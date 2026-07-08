@@ -72,6 +72,12 @@ func Read(path string) (config types.Configuration, err error) {
 	if config.Grpc.UnixSocketPath == "" {
 		config.Grpc.UnixSocketPath = filepath.Join(config.StateDir, "grpc.sock")
 	}
+	if config.EvalTimeout == 0 {
+		config.EvalTimeout = 1800
+	}
+	if config.BuildTimeout == 0 {
+		config.BuildTimeout = 1800
+	}
 	logrus.Debugf("Config is '%#v'", config)
 	return
 }

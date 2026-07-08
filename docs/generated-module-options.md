@@ -114,6 +114,27 @@ one of “without”, “auto”, “manual”
 
 
 
+## services\.comin\.buildTimeout
+
+
+
+Maximum duration in seconds for a Nix build before comin cancels it\.
+
+
+
+*Type:*
+signed integer
+
+
+
+*Default:*
+
+```nix
+1800
+```
+
+
+
 ## services\.comin\.debug
 
 
@@ -248,6 +269,28 @@ string
 
 ```nix
 "comin"
+```
+
+
+
+## services\.comin\.evalTimeout
+
+
+
+Maximum duration in seconds for a Nix evaluation (flake/nix eval)
+before comin cancels it\.
+
+
+
+*Type:*
+signed integer
+
+
+
+*Default:*
+
+```nix
+1800
 ```
 
 
