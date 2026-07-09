@@ -70,22 +70,15 @@ message Event {
     RepositoryStatus repositoryStatus = 1;
   }
   message Log {
+    string object_type = 4;
+    string object_uuid = 5;
     message Open {
-      // The uuid of the log strean
-      string uuid = 1;
     }
     message Close {
-      // The uuid of the log strean
-      string uuid = 1;
     }
     message Line {
-      // The uuid of the log strean
-      string uuid = 5;
       // stdout or stdin
       string source = 1;
-      // deployment or evaluation
-      string purpose = 2;
-      string object_uuid = 3;
       string msg = 4;
     }
     oneof Type {

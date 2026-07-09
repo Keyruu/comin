@@ -250,8 +250,8 @@ func (d *Deployer) Run(ctx context.Context) {
 					stderr,
 				)
 				// We close the writers to stop associated goroutines
-				stdout.Close()
-				stderr.Close()
+				_ = stdout.Close()
+				_ = stderr.Close()
 			}
 			deployment := d.Deployment()
 			deployment.EndedAt = timestamppb.New(time.Now().UTC())

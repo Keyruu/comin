@@ -226,8 +226,8 @@ func (b *Builder) Eval(ctx context.Context, rs *protobuf.RepositoryStatus) error
 		b.evaluator.Wait()
 
 		// We close the writers to stop associated goroutines
-		stdout.Close()
-		stderr.Close()
+		_ = stdout.Close()
+		_ = stderr.Close()
 
 		b.mu.Lock()
 		defer b.mu.Unlock()
@@ -366,8 +366,8 @@ func (b *Builder) build(ctx context.Context, generationUuid string) error {
 		b.buildator.Wait()
 
 		// We close the writers to stop associated goroutines
-		stdout.Close()
-		stderr.Close()
+		_ = stdout.Close()
+		_ = stderr.Close()
 
 		b.mu.Lock()
 		defer b.mu.Unlock()

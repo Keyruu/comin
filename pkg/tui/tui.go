@@ -329,14 +329,15 @@ func UpdateManager(manager *ManagerModel, event *protobuf.Event) {
 	case *protobuf.Event_Log_:
 		if logLine := e.Log.GetLine(); logLine != nil {
 			msg := logLine.GetMsg()
-			purpose := logLine.GetPurpose()
+			objectType := e.Log.GetObjectType()
 			// Append log line to the appropriate slice, keeping only last 10
-			if purpose == "evaluation" || purpose == "build" {
+			switch objectType {
+			case "evaluation", "build":
 				manager.Builder.LogLines = append(manager.Builder.LogLines, msg)
 				if len(manager.Builder.LogLines) > 10 {
 					manager.Builder.LogLines = manager.Builder.LogLines[len(manager.Builder.LogLines)-10:]
 				}
-			} else if purpose == "deployment" {
+			case "deployment":
 				manager.Deployer.LogLines = append(manager.Deployer.LogLines, msg)
 				if len(manager.Deployer.LogLines) > 10 {
 					manager.Deployer.LogLines = manager.Deployer.LogLines[len(manager.Deployer.LogLines)-10:]

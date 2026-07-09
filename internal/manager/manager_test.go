@@ -51,7 +51,7 @@ func (n ExecutorMock) NeedToReboot(_, _ string) bool {
 func (n ExecutorMock) IsStorePathExist(storePath string) bool {
 	return false
 }
-func (n ExecutorMock) Deploy(ctx context.Context, outPath, operation string, profilePaths []string) (needToRestartComin bool, profilePath string, err error) {
+func (n ExecutorMock) Deploy(ctx context.Context, outPath, operation string, profilePaths []string, stdout, stderr io.WriteCloser) (needToRestartComin bool, profilePath string, err error) {
 	return false, "", nil
 }
 func (n ExecutorMock) Eval(ctx context.Context, repositoryPath, repositorySubdir, commitId, systemAttr, hostname string, submodules bool, stdout, stderr io.WriteCloser) (drvPath string, outPath string, machineId string, err error) {
@@ -206,10 +206,10 @@ func TestDeploy(t *testing.T) {
 	eMock.evalOk <- true
 	eMock.buildOk <- true
 	b := builder.New(s, eMock, bk, "repoPath", "", "", "my-machine", false, 2*time.Second, 2*time.Second)
-	var deployFunc = func(context.Context, string, string, []string) (bool, string, error) {
+	var deployFunc = func(context.Context, string, string, []string, io.WriteCloser, io.WriteCloser) (bool, string, error) {
 		return false, "profile-path", nil
 	}
-	d := deployer.New(s, deployFunc, nil, "")
+	d := deployer.New(s, deployFunc, nil, "", bk)
 	e, _ := executor.NewNixOSFlake()
 	bc := NewConfirmer(bk, Without, 0, "")
 	bc.Start()

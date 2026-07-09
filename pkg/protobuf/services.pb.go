@@ -2330,7 +2330,9 @@ func (x *Event_Fetched) GetRepositoryStatus() *RepositoryStatus {
 }
 
 type Event_Log struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	ObjectType string                 `protobuf:"bytes,4,opt,name=object_type,json=objectType" json:"object_type,omitempty"`
+	ObjectUuid string                 `protobuf:"bytes,5,opt,name=object_uuid,json=objectUuid" json:"object_uuid,omitempty"`
 	// Types that are valid to be assigned to Type:
 	//
 	//	*Event_Log_Open_
@@ -2369,6 +2371,20 @@ func (x *Event_Log) ProtoReflect() protoreflect.Message {
 // Deprecated: Use Event_Log.ProtoReflect.Descriptor instead.
 func (*Event_Log) Descriptor() ([]byte, []int) {
 	return file_pkg_protobuf_services_proto_rawDescGZIP(), []int{1, 14}
+}
+
+func (x *Event_Log) GetObjectType() string {
+	if x != nil {
+		return x.ObjectType
+	}
+	return ""
+}
+
+func (x *Event_Log) GetObjectUuid() string {
+	if x != nil {
+		return x.ObjectUuid
+	}
+	return ""
 }
 
 func (x *Event_Log) GetType() isEvent_Log_Type {
@@ -2428,9 +2444,7 @@ func (*Event_Log_Close_) isEvent_Log_Type() {}
 func (*Event_Log_Line_) isEvent_Log_Type() {}
 
 type Event_Log_Open struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// The uuid of the log strean
-	Uuid          string `protobuf:"bytes,1,opt,name=uuid" json:"uuid,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2465,17 +2479,8 @@ func (*Event_Log_Open) Descriptor() ([]byte, []int) {
 	return file_pkg_protobuf_services_proto_rawDescGZIP(), []int{1, 14, 0}
 }
 
-func (x *Event_Log_Open) GetUuid() string {
-	if x != nil {
-		return x.Uuid
-	}
-	return ""
-}
-
 type Event_Log_Close struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// The uuid of the log strean
-	Uuid          string `protobuf:"bytes,1,opt,name=uuid" json:"uuid,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2510,22 +2515,10 @@ func (*Event_Log_Close) Descriptor() ([]byte, []int) {
 	return file_pkg_protobuf_services_proto_rawDescGZIP(), []int{1, 14, 1}
 }
 
-func (x *Event_Log_Close) GetUuid() string {
-	if x != nil {
-		return x.Uuid
-	}
-	return ""
-}
-
 type Event_Log_Line struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The uuid of the log strean
-	Uuid string `protobuf:"bytes,5,opt,name=uuid" json:"uuid,omitempty"`
 	// stdout or stdin
-	Source string `protobuf:"bytes,1,opt,name=source" json:"source,omitempty"`
-	// deployment or evaluation
-	Purpose       string `protobuf:"bytes,2,opt,name=purpose" json:"purpose,omitempty"`
-	ObjectUuid    string `protobuf:"bytes,3,opt,name=object_uuid,json=objectUuid" json:"object_uuid,omitempty"`
+	Source        string `protobuf:"bytes,1,opt,name=source" json:"source,omitempty"`
 	Msg           string `protobuf:"bytes,4,opt,name=msg" json:"msg,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2561,30 +2554,9 @@ func (*Event_Log_Line) Descriptor() ([]byte, []int) {
 	return file_pkg_protobuf_services_proto_rawDescGZIP(), []int{1, 14, 2}
 }
 
-func (x *Event_Log_Line) GetUuid() string {
-	if x != nil {
-		return x.Uuid
-	}
-	return ""
-}
-
 func (x *Event_Log_Line) GetSource() string {
 	if x != nil {
 		return x.Source
-	}
-	return ""
-}
-
-func (x *Event_Log_Line) GetPurpose() string {
-	if x != nil {
-		return x.Purpose
-	}
-	return ""
-}
-
-func (x *Event_Log_Line) GetObjectUuid() string {
-	if x != nil {
-		return x.ObjectUuid
 	}
 	return ""
 }
@@ -2602,7 +2574,7 @@ const file_pkg_protobuf_services_proto_rawDesc = "" +
 	"\n" +
 	"\x1bpkg/protobuf/services.proto\x12\bprotobuf\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\"<\n" +
 	"\tOperation\x12/\n" +
-	"\x13operation_submitted\x18\x01 \x01(\tR\x12operationSubmitted\"\xe0\x12\n" +
+	"\x13operation_submitted\x18\x01 \x01(\tR\x12operationSubmitted\"\xab\x12\n" +
 	"\x05Event\x12G\n" +
 	"\x0fevalStartedType\x18\x01 \x01(\v2\x1b.protobuf.Event.EvalStartedH\x00R\x0fevalStartedType\x12J\n" +
 	"\x10evalFinishedType\x18\x02 \x01(\v2\x1c.protobuf.Event.EvalFinishedH\x00R\x10evalFinishedType\x12J\n" +
@@ -2662,21 +2634,19 @@ const file_pkg_protobuf_services_proto_rawDesc = "" +
 	"\fManagerState\x12%\n" +
 	"\x05state\x18\x01 \x01(\v2\x0f.protobuf.StateR\x05state\x1aQ\n" +
 	"\aFetched\x12F\n" +
-	"\x10repositoryStatus\x18\x01 \x01(\v2\x1a.protobuf.RepositoryStatusR\x10repositoryStatus\x1a\xda\x02\n" +
-	"\x03Log\x12.\n" +
+	"\x10repositoryStatus\x18\x01 \x01(\v2\x1a.protobuf.RepositoryStatusR\x10repositoryStatus\x1a\xa5\x02\n" +
+	"\x03Log\x12\x1f\n" +
+	"\vobject_type\x18\x04 \x01(\tR\n" +
+	"objectType\x12\x1f\n" +
+	"\vobject_uuid\x18\x05 \x01(\tR\n" +
+	"objectUuid\x12.\n" +
 	"\x04open\x18\x01 \x01(\v2\x18.protobuf.Event.Log.OpenH\x00R\x04open\x121\n" +
 	"\x05close\x18\x02 \x01(\v2\x19.protobuf.Event.Log.CloseH\x00R\x05close\x12.\n" +
-	"\x04line\x18\x03 \x01(\v2\x18.protobuf.Event.Log.LineH\x00R\x04line\x1a\x1a\n" +
-	"\x04Open\x12\x12\n" +
-	"\x04uuid\x18\x01 \x01(\tR\x04uuid\x1a\x1b\n" +
-	"\x05Close\x12\x12\n" +
-	"\x04uuid\x18\x01 \x01(\tR\x04uuid\x1a\x7f\n" +
-	"\x04Line\x12\x12\n" +
-	"\x04uuid\x18\x05 \x01(\tR\x04uuid\x12\x16\n" +
-	"\x06source\x18\x01 \x01(\tR\x06source\x12\x18\n" +
-	"\apurpose\x18\x02 \x01(\tR\apurpose\x12\x1f\n" +
-	"\vobject_uuid\x18\x03 \x01(\tR\n" +
-	"objectUuid\x12\x10\n" +
+	"\x04line\x18\x03 \x01(\v2\x18.protobuf.Event.Log.LineH\x00R\x04line\x1a\x06\n" +
+	"\x04Open\x1a\a\n" +
+	"\x05Close\x1a0\n" +
+	"\x04Line\x12\x16\n" +
+	"\x06source\x18\x01 \x01(\tR\x06source\x12\x10\n" +
 	"\x03msg\x18\x04 \x01(\tR\x03msgB\x06\n" +
 	"\x04TypeB\x06\n" +
 	"\x04Type\"J\n" +

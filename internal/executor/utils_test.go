@@ -72,7 +72,7 @@ func TestParseDerivationShortOutput(t *testing.T) {
 	// then dereference elems[1] and panic with index-out-of-range. It now
 	// returns the error. We can't run real nix here, so we only assert the
 	// code path no longer panics when the underlying command yields nothing.
-	_, _, _, err := showDerivationWithNix(context.Background(), "/nonexistent", "nixosConfigurations")
+	_, _, _, err := showDerivationWithNix(context.Background(), "/nonexistent", "nixosConfigurations", os.Stdout, os.Stderr)
 	assert.Error(t, err, "expected an error when nix evaluation fails")
 }
 
@@ -225,7 +225,7 @@ func TestSwitchToConfiguration(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Test with dry run to avoid actual system modifications
-			err := switchToConfiguration(tt.operation, tt.outPath, tt.dryRun, tt.systemAttr)
+			err := switchToConfiguration(tt.operation, tt.outPath, tt.dryRun, tt.systemAttr, os.Stdout, os.Stderr)
 
 			// May error due to missing files in test environment, but shouldn't panic
 			t.Logf("switchToConfiguration with %s returned error: %v", tt.systemAttr, err)
@@ -262,7 +262,7 @@ func TestDeployFunctions(t *testing.T) {
 			ctx := context.Background()
 
 			// Test that deploy function delegates correctly without panicking
-			_, _, err := deploy(ctx, tt.outPath, tt.operation, tt.systemAttr, []string{})
+			_, _, err := deploy(ctx, tt.outPath, tt.operation, tt.systemAttr, []string{}, os.Stdout, os.Stderr)
 
 			// Will likely error in test environment, but shouldn't panic
 			t.Logf("deploy with %s returned error: %v (expected in test environment)", tt.systemAttr, err)

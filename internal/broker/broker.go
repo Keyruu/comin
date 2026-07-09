@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/nlewo/comin/pkg/protobuf"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -74,15 +73,14 @@ func (b *Broker) Publish(msg *protobuf.Event) {
 func (b *Broker) GetLogger(obj, objUuid string) (stdout, stderr io.WriteCloser) {
 	stdoutR, stdoutW := io.Pipe()
 	stderrR, stderrW := io.Pipe()
-	uuid := uuid.New().String()
 	b.Publish(
 		&protobuf.Event{
 			Type: &protobuf.Event_Log_{
 				Log: &protobuf.Event_Log{
+					ObjectType: obj,
+					ObjectUuid: objUuid,
 					Type: &protobuf.Event_Log_Open_{
-						Open: &protobuf.Event_Log_Open{
-							Uuid: uuid,
-						},
+						Open: &protobuf.Event_Log_Open{},
 					},
 				},
 			},
@@ -104,13 +102,12 @@ func (b *Broker) GetLogger(obj, objUuid string) (stdout, stderr io.WriteCloser) 
 				&protobuf.Event{
 					Type: &protobuf.Event_Log_{
 						Log: &protobuf.Event_Log{
+							ObjectType: obj,
+							ObjectUuid: objUuid,
 							Type: &protobuf.Event_Log_Line_{
 								Line: &protobuf.Event_Log_Line{
-									Uuid:       uuid,
-									Source:     "stdout",
-									Purpose:    obj,
-									ObjectUuid: objUuid,
-									Msg:        line,
+									Source: "stdout",
+									Msg:    line,
 								},
 							},
 						},
@@ -133,13 +130,12 @@ func (b *Broker) GetLogger(obj, objUuid string) (stdout, stderr io.WriteCloser) 
 				&protobuf.Event{
 					Type: &protobuf.Event_Log_{
 						Log: &protobuf.Event_Log{
+							ObjectType: obj,
+							ObjectUuid: objUuid,
 							Type: &protobuf.Event_Log_Line_{
 								Line: &protobuf.Event_Log_Line{
-									Uuid:       uuid,
-									Source:     "stderr",
-									Purpose:    obj,
-									ObjectUuid: objUuid,
-									Msg:        line,
+									Source: "stderr",
+									Msg:    line,
 								},
 							},
 						},
@@ -157,10 +153,10 @@ func (b *Broker) GetLogger(obj, objUuid string) (stdout, stderr io.WriteCloser) 
 			&protobuf.Event{
 				Type: &protobuf.Event_Log_{
 					Log: &protobuf.Event_Log{
+						ObjectType: obj,
+						ObjectUuid: objUuid,
 						Type: &protobuf.Event_Log_Close_{
-							Close: &protobuf.Event_Log_Close{
-								Uuid: uuid,
-							},
+							Close: &protobuf.Event_Log_Close{},
 						},
 					},
 				},
