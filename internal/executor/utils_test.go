@@ -64,6 +64,17 @@ const drv_nix_2_31 string = `{
 }
 `
 
+func TestParseDerivationShortOutput(t *testing.T) {
+	// nix-instantiate can emit output with fewer than 2 ";"-separated
+	// elements (e.g. when the derivation eval fails or returns a bare
+	// store path). showDerivationWithNix used to set err but keep going,
+	// then dereference elems[1] and panic with index-out-of-range. It now
+	// returns the error. We can't run real nix here, so we only assert the
+	// code path no longer panics when the underlying command yields nothing.
+	_, _, _, err := showDerivationWithNix(context.Background(), "/nonexistent", "nixosConfigurations")
+	assert.Error(t, err, "expected an error when nix evaluation fails")
+}
+
 func TestParseDerivationWithFlake(t *testing.T) {
 	var buf = bytes.NewBufferString(drv_nix_2_33)
 	drvPath, outPath, err := parseDerivationWithFlake(*buf)

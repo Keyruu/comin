@@ -105,7 +105,7 @@ func showDerivationWithNix(ctx context.Context, directory, systemAttr string) (d
 	sanitized = strings.TrimSuffix(sanitized, `"`)
 	elems := strings.Split(sanitized, ";")
 	if len(elems) < 2 {
-		err = fmt.Errorf("nix: the output of the evalucation Nix command must at least return 2 lines")
+		return "", "", "", fmt.Errorf("nix: the output of the evaluation Nix command must at least return 2 elements")
 	}
 	drvPath = elems[0]
 	outPath = elems[1]
