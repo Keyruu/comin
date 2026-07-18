@@ -23,7 +23,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/nlewo/comin/internal/types"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/ssh"
+	cryptossh "golang.org/x/crypto/ssh"
 )
 
 func getRemoteCommitHash(r repository, remote, branch string) *plumbing.Hash {
@@ -263,7 +263,7 @@ func commitSignedBy(r *git.Repository, commitId string, gpgPublicKeys []string, 
 
 type sshAllowedSigner struct {
 	principal  string
-	key        ssh.PublicKey
+	key        cryptossh.PublicKey
 	namespaces []string
 }
 
@@ -340,7 +340,7 @@ func parseSSHAllowedSigners(allowedSigners string) ([]sshAllowedSigner, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to read the SSH allowed signer on line %d: %w", lineNumber+1, err)
 		}
-		key, _, keyOptions, keyRest, err := ssh.ParseAuthorizedKey([]byte(keyInput))
+		key, _, keyOptions, keyRest, err := cryptossh.ParseAuthorizedKey([]byte(keyInput))
 		if err != nil {
 			return nil, fmt.Errorf("failed to read the SSH allowed signer on line %d: %w", lineNumber+1, err)
 		}
@@ -350,7 +350,7 @@ func parseSSHAllowedSigners(allowedSigners string) ([]sshAllowedSigner, error) {
 		if strings.TrimSpace(string(keyRest)) != "" {
 			return nil, fmt.Errorf("failed to read the SSH allowed signer on line %d: unsupported trailing data", lineNumber+1)
 		}
-		if _, ok := key.(*ssh.Certificate); ok {
+		if _, ok := key.(*cryptossh.Certificate); ok {
 			return nil, fmt.Errorf("failed to read the SSH allowed signer on line %d: SSH certificates are not supported", lineNumber+1)
 		}
 		signers = append(signers, sshAllowedSigner{
@@ -513,7 +513,7 @@ type sshCommitSignature struct {
 	namespace     string
 	reserved      string
 	hashAlgorithm string
-	signature     *ssh.Signature
+	signature     *cryptossh.Signature
 }
 
 type sshSignatureWire struct {
@@ -542,23 +542,23 @@ func parseSSHSignature(signature string) (*sshCommitSignature, error) {
 	}
 
 	var wire sshSignatureWire
-	if err := ssh.Unmarshal(block.Bytes[len("SSHSIG"):], &wire); err != nil {
+	if err := cryptossh.Unmarshal(block.Bytes[len("SSHSIG"):], &wire); err != nil {
 		return nil, err
 	}
 	if wire.Version != 1 {
 		return nil, fmt.Errorf("unsupported SSH signature version %d", wire.Version)
 	}
-	if _, err := ssh.ParsePublicKey(wire.PublicKey); err != nil {
+	if _, err := cryptossh.ParsePublicKey(wire.PublicKey); err != nil {
 		return nil, err
 	}
 
-	sshSignature := &ssh.Signature{}
-	if err := ssh.Unmarshal(wire.Signature, sshSignature); err != nil {
+	sshSignature := &cryptossh.Signature{}
+	if err := cryptossh.Unmarshal(wire.Signature, sshSignature); err != nil {
 		return nil, err
 	}
 	// OpenSSH refuses SHA-1 based signature algorithms for SSH signatures.
 	// "ssh-dss" spelled out to avoid referencing the deprecated ssh.KeyAlgoDSA constant.
-	if sshSignature.Format == ssh.KeyAlgoRSA || sshSignature.Format == "ssh-dss" {
+	if sshSignature.Format == cryptossh.KeyAlgoRSA || sshSignature.Format == "ssh-dss" {
 		return nil, fmt.Errorf("unsupported SSH signature algorithm %q", sshSignature.Format)
 	}
 
@@ -584,7 +584,7 @@ func sshSignedData(namespace, reserved, hashAlgorithm string, payload []byte) ([
 		return nil, fmt.Errorf("unsupported SSH signature hash algorithm %q", hashAlgorithm)
 	}
 
-	return append([]byte("SSHSIG"), ssh.Marshal(sshSignedDataWire{
+	return append([]byte("SSHSIG"), cryptossh.Marshal(sshSignedDataWire{
 		Namespace:     namespace,
 		Reserved:      reserved,
 		HashAlgorithm: hashAlgorithm,
