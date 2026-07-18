@@ -977,6 +977,27 @@ signed integer
 
 
 
+## services\.comin\.sshAllowedSignersPath
+
+
+
+An OpenSSH allowed signers file path used to verify SSH-signed Git commits\.
+
+
+
+*Type:*
+null or string
+
+
+
+*Default:*
+
+```nix
+null
+```
+
+
+
 ## services\.comin\.submodules
 
 
@@ -1020,5 +1041,3 @@ null or string
 ```nix
 null
 ```
-
-
