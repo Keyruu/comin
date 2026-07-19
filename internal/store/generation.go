@@ -235,6 +235,7 @@ func (s *Store) GenerationBuildFinished(uuid string, buildErr error) error {
 	}
 	g.BuildEndedAt = timestamppb.New(time.Now().UTC())
 	if buildErr == nil {
+		g.BuildErr = ""
 		g.BuildStatus = Built.String()
 		// We create a gcroots for the last built generation
 		// in order to avoid the Nix garbage collector to

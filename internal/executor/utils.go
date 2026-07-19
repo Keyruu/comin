@@ -183,8 +183,10 @@ func buildWithFlake(ctx context.Context, drvPath string, stdout, stdin io.WriteC
 		"--no-link"}
 	err = runNixFlakeCommand(ctx, args, stdout, stdin)
 	if err != nil {
+		logrus.Debugf("buildWithFlake: exit with error: %s", err)
 		return
 	}
+	logrus.Debugf("buildWithFlake: exit with no error")
 	return
 }
 

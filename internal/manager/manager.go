@@ -201,6 +201,8 @@ func (m *Manager) FetchAndBuild(ctx context.Context) {
 					if !m.deployer.IsAlreadyDeployed(&generation, operation) {
 						m.DeployConfirmer.Submit(generationUUID)
 					}
+				} else {
+					logrus.Debugf("manager: the generation %s is not being deployed because it has the error: %s", generationUUID, generation.BuildErr)
 				}
 			case generationUUID := <-m.DeployConfirmer.confirmed:
 				generation, err := m.storage.GenerationGet(generationUUID)
