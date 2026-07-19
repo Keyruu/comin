@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -9,6 +10,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
+
+var jsonFlag bool
 
 var eventsCmd = &cobra.Command{
 	Use:   "events",
@@ -27,11 +30,20 @@ var eventsCmd = &cobra.Command{
 			if streamer.FailureMsg != "" {
 				log.Fatalf("failed to consume to the event stream: %s", streamer.FailureMsg)
 			}
-			fmt.Println(streamer.Event)
+			if jsonFlag {
+				jsonData, err := json.Marshal(streamer.Event)
+				if err != nil {
+					log.Fatalf("failed to marshal event to json: %v", err)
+				}
+				fmt.Println(string(jsonData))
+			} else {
+				fmt.Println(streamer.Event.Short())
+			}
 		}
 	},
 }
 
 func init() {
+	eventsCmd.Flags().BoolVar(&jsonFlag, "json", false, "Print events as JSON")
 	rootCmd.AddCommand(eventsCmd)
 }

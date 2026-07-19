@@ -15,11 +15,11 @@ import (
 	"github.com/nlewo/comin/internal/http"
 	"github.com/nlewo/comin/internal/manager"
 	"github.com/nlewo/comin/internal/prometheus"
-	"github.com/nlewo/comin/pkg/protobuf"
 	"github.com/nlewo/comin/internal/repository"
 	"github.com/nlewo/comin/internal/scheduler"
 	"github.com/nlewo/comin/internal/server"
 	storePkg "github.com/nlewo/comin/internal/store"
+	"github.com/nlewo/comin/pkg/protobuf"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -109,8 +109,8 @@ var runCmd = &cobra.Command{
 		sched := scheduler.New()
 		sched.FetchRemotes(fetcher, cfg.Remotes)
 
-		builder := builder.New(store, executor, gitConfig.Path, gitConfig.Dir, cfg.SystemAttr, cfg.Hostname, gitConfig.Submodules, time.Duration(cfg.EvalTimeout)*time.Second, time.Duration(cfg.BuildTimeout)*time.Second)
-		deployer := deployer.New(store, executor.Deploy, lastDeployment, cfg.PostDeploymentCommand)
+		builder := builder.New(store, executor, broker, gitConfig.Path, gitConfig.Dir, cfg.SystemAttr, cfg.Hostname, gitConfig.Submodules, time.Duration(cfg.EvalTimeout)*time.Second, time.Duration(cfg.BuildTimeout)*time.Second)
+		deployer := deployer.New(store, executor.Deploy, lastDeployment, cfg.PostDeploymentCommand, broker)
 
 		mode, err := manager.ParseMode(cfg.BuildConfirmer.Mode)
 		if err != nil {

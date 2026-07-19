@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/nlewo/comin/internal/utils"
@@ -42,28 +43,28 @@ func (n *NixFlakeLocal) IsStorePathExist(storePath string) bool {
 }
 
 func (n *NixFlakeLocal) ShowDerivation(ctx context.Context, flakeUrl, hostname string) (drvPath string, outPath string, err error) {
-	return showDerivationWithFlake(ctx, flakeUrl, hostname, n.systemAttr)
+	return showDerivationWithFlake(ctx, flakeUrl, hostname, n.systemAttr, os.Stdout, os.Stderr)
 }
 
-func (n *NixFlakeLocal) Eval(ctx context.Context, repositoryPath, repositorySubdir, commitId, systemAttr, hostname string, submodules bool) (drvPath string, outPath string, machineId string, err error) {
+func (n *NixFlakeLocal) Eval(ctx context.Context, repositoryPath, repositorySubdir, commitId, systemAttr, hostname string, submodules bool, stdout, stderr io.WriteCloser) (drvPath string, outPath string, machineId string, err error) {
 	flakeUrl := fmt.Sprintf("git+file://%s?dir=%s&rev=%s", repositoryPath, repositorySubdir, commitId)
 	if submodules {
 		flakeUrl += "&submodules=1"
 	}
-	drvPath, outPath, err = showDerivationWithFlake(ctx, flakeUrl, hostname, n.systemAttr)
+	drvPath, outPath, err = showDerivationWithFlake(ctx, flakeUrl, hostname, n.systemAttr, stdout, stderr)
 	if err != nil {
 		return
 	}
-	machineId, err = getExpectedMachineId(ctx, flakeUrl, hostname, n.systemAttr)
+	machineId, err = getExpectedMachineId(ctx, flakeUrl, hostname, n.systemAttr, stdout, stderr)
 	return
 }
 
-func (n *NixFlakeLocal) Build(ctx context.Context, drvPath string) (err error) {
-	return buildWithFlake(ctx, drvPath)
+func (n *NixFlakeLocal) Build(ctx context.Context, drvPath string, stdout, stdin io.WriteCloser) (err error) {
+	return buildWithFlake(ctx, drvPath, stdout, stdin)
 }
 
-func (n *NixFlakeLocal) Deploy(ctx context.Context, outPath, operation string, profilePaths []string) (needToRestartComin bool, profilePath string, err error) {
-	return deploy(ctx, outPath, operation, n.systemAttr, profilePaths)
+func (n *NixFlakeLocal) Deploy(ctx context.Context, outPath, operation string, profilePaths []string, stdout, stderr io.WriteCloser) (needToRestartComin bool, profilePath string, err error) {
+	return deploy(ctx, outPath, operation, n.systemAttr, profilePaths, stdout, stderr)
 }
 
 type Path struct {
@@ -96,7 +97,7 @@ func (n *NixFlakeLocal) List(flakeUrl string) (hosts []string, err error) {
 		flakeUrl,
 	}
 	var stdout bytes.Buffer
-	err = runNixFlakeCommand(context.Background(), args, &stdout, os.Stderr)
+	err = runNixFlakeCommand(context.Background(), args, &NopWriteCloser{Writer: &stdout}, &NopWriteCloser{Writer: os.Stderr})
 	if err != nil {
 		return
 	}

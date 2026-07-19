@@ -107,6 +107,7 @@ type BuilderModel struct {
 	IsBuilding   bool
 	IsSuspended  bool
 	Generation   *protobuf.Generation
+	LogLines     []string
 }
 
 func (bm BuilderModel) View() string {
@@ -165,6 +166,14 @@ func (bm BuilderModel) View() string {
 				fmt.Sprintf(" %s\n", formatTime(g.BuildEndedAt.AsTime())))
 		}
 	}
+	b.WriteString("  " + labelStyle.Render("Logs:") + "\n")
+	start := 0
+	if len(bm.LogLines) > 10 {
+		start = len(bm.LogLines) - 10
+	}
+	for i := start; i < len(bm.LogLines); i++ {
+		b.WriteString("    " + bm.LogLines[i] + "\n")
+	}
 	return b.String()
 }
 
@@ -173,6 +182,7 @@ type DeployerModel struct {
 	IsDeploying bool
 	IsSuspended bool
 	Deployment  *protobuf.Deployment
+	LogLines    []string
 }
 
 func (dm DeployerModel) View() string {
@@ -218,6 +228,15 @@ func (dm DeployerModel) View() string {
 				errorStyle.Render("failed") +
 				fmt.Sprintf(" %s\n", formatTime(d.EndedAt.AsTime())))
 		}
+	}
+	// Deployer logs
+	b.WriteString("  " + labelStyle.Render("Logs:") + "\n")
+	start := 0
+	if len(dm.LogLines) > 10 {
+		start = len(dm.LogLines) - 10
+	}
+	for i := start; i < len(dm.LogLines); i++ {
+		b.WriteString("    " + dm.LogLines[i] + "\n")
 	}
 	return b.String()
 }
@@ -307,5 +326,23 @@ func UpdateManager(manager *ManagerModel, event *protobuf.Event) {
 		manager.IsSuspended = false
 	case *protobuf.Event_RebootRequired_:
 		manager.NeedToReboot = true
+	case *protobuf.Event_Log_:
+		if logLine := e.Log.GetLine(); logLine != nil {
+			msg := logLine.GetMsg()
+			objectType := e.Log.GetObjectType()
+			// Append log line to the appropriate slice, keeping only last 10
+			switch objectType {
+			case "evaluation", "build":
+				manager.Builder.LogLines = append(manager.Builder.LogLines, msg)
+				if len(manager.Builder.LogLines) > 10 {
+					manager.Builder.LogLines = manager.Builder.LogLines[len(manager.Builder.LogLines)-10:]
+				}
+			case "deployment":
+				manager.Deployer.LogLines = append(manager.Deployer.LogLines, msg)
+				if len(manager.Deployer.LogLines) > 10 {
+					manager.Deployer.LogLines = manager.Deployer.LogLines[len(manager.Deployer.LogLines)-10:]
+				}
+			}
+		}
 	}
 }

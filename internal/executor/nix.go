@@ -3,6 +3,7 @@ package executor
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path"
 
@@ -30,7 +31,7 @@ func (n *NixLocal) NeedToReboot(outPath, operation string) bool {
 	return utils.NeedToRebootLinux(outPath, operation)
 }
 
-func (n *NixLocal) Eval(ctx context.Context, repositoryPath, repositorySubdir, commitId, systemAttr, hostname string, submodules bool) (drvPath string, outPath string, machineId string, err error) {
+func (n *NixLocal) Eval(ctx context.Context, repositoryPath, repositorySubdir, commitId, systemAttr, hostname string, submodules bool, stdout, stderr io.WriteCloser) (drvPath string, outPath string, machineId string, err error) {
 	tempDir, err := cloneRepoToTemp(repositoryPath, commitId, submodules)
 	defer os.RemoveAll(tempDir) // nolint: errcheck
 	if err != nil {
@@ -38,15 +39,15 @@ func (n *NixLocal) Eval(ctx context.Context, repositoryPath, repositorySubdir, c
 	}
 	logrus.Debugf("nix: temporary cloned into %s", tempDir)
 	nixDir := path.Join(tempDir, repositorySubdir)
-	return showDerivationWithNix(ctx, nixDir, systemAttr)
+	return showDerivationWithNix(ctx, nixDir, systemAttr, stdout, stderr)
 }
 
-func (n *NixLocal) Build(ctx context.Context, drvPath string) (err error) {
-	return buildWithNix(ctx, drvPath)
+func (n *NixLocal) Build(ctx context.Context, drvPath string, stdout, stdin io.WriteCloser) (err error) {
+	return buildWithNix(ctx, drvPath, stdout, stdin)
 }
 
-func (n *NixLocal) Deploy(ctx context.Context, outPath, operation string, profilePaths []string) (needToRestartComin bool, profilePath string, err error) {
-	return deployLinux(ctx, outPath, operation, profilePaths)
+func (n *NixLocal) Deploy(ctx context.Context, outPath, operation string, profilePaths []string, stdout, stderr io.WriteCloser) (needToRestartComin bool, profilePath string, err error) {
+	return deployLinux(ctx, outPath, operation, profilePaths, stdout, stderr)
 }
 
 func cloneRepoToTemp(remoteDir string, commitId string, submodules bool) (string, error) {
