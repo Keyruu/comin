@@ -61,7 +61,7 @@ type Grpc struct {
 
 type Confirmer struct {
 	Mode         string `yaml:"mode"`
-	AutoDuration int    `yaml:"auto_duration"`
+	AutoDuration int    `yaml:"autoconfirm_duration"`
 }
 
 type Retention struct {
