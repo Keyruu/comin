@@ -296,8 +296,8 @@ func (b *Builder) Resume(ctx context.Context) error {
 		if store.GenerationHasToBeBuilt(&generation) {
 			logrus.Infof("builder: builder is resumed and generation %s has to be built", b.GenerationUuid)
 			// TODO: expose the error in the builder state
-			if err := b.build(ctx, b.GenerationUuid); err != nil {
-				logrus.Error(err)
+			if err := b.build(context.Background(), b.GenerationUuid); err != nil {
+				logrus.Errorf("builder: failed to build the generation %s: %s", b.GenerationUuid, err)
 			}
 		} else {
 			logrus.Infof("builder: builder is resumed while no generation has to be built")
@@ -379,6 +379,7 @@ func (b *Builder) build(ctx context.Context, generationUuid string) error {
 		select {
 		case b.BuildDone <- generationUuid:
 		default:
+			logrus.Errorf("builder: the build has not been notified")
 		}
 	}()
 	return nil
