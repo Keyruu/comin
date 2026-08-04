@@ -29,7 +29,7 @@ var desktopCmd = &cobra.Command{
 		}
 		err := beeep.Notify(title, "Agent desktop notifications started.", []byte{})
 		if err != nil {
-			panic(err)
+			logrus.Warnf("failed to send the startup notification: %s", err)
 		}
 
 		test, _ := cmd.Flags().GetBool("test")
