@@ -120,14 +120,35 @@ func fetch(r repository, remote types.Remote) (err error) {
 	err = r.Repository.FetchContext(ctx, &fetchOptions)
 	if err == nil {
 		logrus.Infof("New commits have been fetched from '%s'", remote.URL)
-		return nil
 	} else if err != git.NoErrAlreadyUpToDate {
 		logrus.Errorf("Pull from remote '%s' failed: %s", remote.Name, err)
 		return fmt.Errorf("'git fetch %s' fails: '%s'", remote.Name, err)
 	} else {
 		logrus.Debugf("No new commits have been fetched from the remote '%s'", remote.Name)
+	}
+	if err := fixHead(r.Repository, remote); err != nil {
+		logrus.Warnf("git: failed to set HEAD on the bare repository: %s", err)
+	}
+	return nil
+}
+
+// go-git's bare init leaves HEAD on refs/heads/master,
+// which breaks Nix's git fetcher when main is anything else.
+func fixHead(r *git.Repository, remote types.Remote) error {
+	if remote.Branches.Main.Name == "" {
 		return nil
 	}
+	remoteRef, err := r.Reference(plumbing.ReferenceName(fmt.Sprintf("refs/remotes/%s/%s", remote.Name, remote.Branches.Main.Name)), true)
+	if err != nil || remoteRef == nil {
+		return nil
+	}
+	localRefName := plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", remote.Branches.Main.Name))
+	if existing, err := r.Reference(localRefName, true); err != nil || existing == nil || existing.Hash() != remoteRef.Hash() {
+		if err := r.Storer.SetReference(plumbing.NewHashReference(localRefName, remoteRef.Hash())); err != nil {
+			return err
+		}
+	}
+	return r.Storer.SetReference(plumbing.NewSymbolicReference(plumbing.HEAD, localRefName))
 }
 
 // isAncestor returns true when the commitId is an ancestor of the branch branchName
